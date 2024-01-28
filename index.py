@@ -1,27 +1,20 @@
+import time
 import requests
 from bs4 import BeautifulSoup
 from collections import Counter
 import re
+import matplotlib.pyplot as plt
 
 languages = [
-    "Python", "JavaScript", "Java", "C#", "C++", "Ruby", "Go", "Swift", 
-    "PHP", "TypeScript", "Kotlin", "Objective-C", "Scala", "Perl",
-    ".NET", "Rust", "Dart", "Lua", "Groovy", "Haskell", "Backend", "Frontend",
-    "Full Stack", "DevOps", "React", "Angular", "Vue", "Docker",
-    "Kubernetes", "AWS", "Azure", "SQL", "MySQL", "PostgreSQL", "MongoDB",
-    "Oracle", "AI", "Blockchain", "Node.js", "Express.js",
-    "Spring", "Django", "Flask", "Laravel", "Bootstrap", "TensorFlow", "PyTorch",
-    "Git", "SVN", "JIRA", "Agile", "Scrum", "Linux", "Unix", "Windows", "API",
-    "REST", "GraphQL", "HTML", "CSS", "Sass", "LESS", "Webpack", "Babel",
-    "npm", "yarn", "Jenkins", "CI/CD", "Selenium", "Testing", "TDD", "BDD",
-    "JUnit", "Mocha", "Chai", "Jest", "Cypress", "Azure DevOps", "Firebase",
-    "GCP", "IBM Cloud", "Red Hat", "Ansible", "Puppet", "Chef", "Nagios",
-    "Prometheus", "ELK", "Splunk", "Data Science", "R", "Matlab", "Tableau",
-    "Power BI", "SAS", "SPSS", "Excel", "Big Data", "Hadoop", "Spark", "Flink",
-    "Cassandra", "Redis", "Elasticsearch", "Solr", "GraphQL", "Apollo", "Redux",
-    "MobX", "RxJS", "Next.js", "Nuxt.js", "Gatsby", "Jekyll", "Electron", 
-    "Cordova", "React Native", "Flutter", "Ionic", "Xamarin", "Unity", "Unreal Engine"
+    "JavaScript", "Python", "Java", "C#", "PHP", "TypeScript", "C++", "Ruby",
+    "Go", "Swift", "Kotlin", "Rust", "Scala", "Perl", "Dart", "Lua", "Haskell",
+    "Objective-C", "Groovy", ".NET Framework", "Node.js", "React", "Angular", "Vue.js",
+    "Spring Framework", "Django", "Flask", "Ruby on Rails", "ASP.NET", "Laravel",
+    "Bootstrap", "TensorFlow", "PyTorch", "Keras", "Pandas", "NumPy", "Git", "Docker",
+    "Kubernetes", "AWS", "SQL", "MySQL", "PostgreSQL", "MongoDB", "Redis",
+    "Apache Kafka", "Elasticsearch", "GraphQL", "Vue"
 ]
+
 
 case_mapping = {language.lower(): language for language in languages}
 
@@ -33,30 +26,42 @@ def count_languages(text, languages):
             language_count[language] += 1
     return language_count
 
-def scrape_job_postings(base_url):
+def scrape_job_postings(urls):
+    num = 1
     total_language_count = Counter()
-    page = 1
-    while True:
-        url = f"{base_url}it/systemudvikling?page={page}"
-        response = requests.get(url)
-        soup = BeautifulSoup(response.content, 'html.parser')
+    for url in urls:
+        page = 1
+        while True:
+            full_url = f"{url}?page={page}"
+            response = requests.get(full_url)
+            soup = BeautifulSoup(response.content, 'html.parser')
 
-        postings = soup.find_all("div", class_="PaidJob")
-        if not postings:
-            break
+            postings = soup.find_all("div", class_="PaidJob")
+            if not postings:
+                break
 
-        for post in postings:
-            text = post.get_text()
-            text = text.lower()
-            language_count = count_languages(text, languages)
-            total_language_count.update(language_count)
+            for post in postings:
+                print(f"Scraping {num}")
+                text = post.get_text().lower()
+                language_count = count_languages(text, languages)
+                total_language_count.update(language_count)
+                num += 1
+                print(text)
 
-        page += 1
-
+            page += 1
     return total_language_count
 
-base_url = "https://www.jobindex.dk/jobsoegning/"
-language_mentions = scrape_job_postings(base_url)
+urls = [
+    "https://www.jobindex.dk/jobsoegning/it/systemudvikling/danmark",
+    # "https://www.jobindex.dk/jobsoegning/it/itdrift/danmark",
+    "https://www.jobindex.dk/jobsoegning/it/virksomhedssystemer/danmark",
+    # "https://www.jobindex.dk/jobsoegning/it/itledelse/danmark",
+    "https://www.jobindex.dk/jobsoegning/it/internet/danmark",
+    # "https://www.jobindex.dk/jobsoegning/it/telekom/danmark",
+    # "https://www.jobindex.dk/jobsoegning/it/database/danmark"
+]
+
+language_mentions = scrape_job_postings(urls)
 
 import csv
 
@@ -66,7 +71,16 @@ with open('language_mentions.csv', 'w', newline='', encoding='utf-8') as csvfile
     for tech, count in language_mentions.items():
         writer.writerow([tech, count])
 
+print(language_mentions)
 print("Data saved to language_mentions.csv")
 
+top_languages = language_mentions.most_common(15)
+languages, counts = zip(*top_languages)
 
-print(language_mentions)
+plt.figure(figsize=(10, 6))
+plt.bar(languages, counts, color='skyblue')
+plt.xlabel('Sprog')
+plt.ylabel('Nævnte gange')
+plt.title('Top 15')
+plt.xticks(rotation=45)
+plt.show()
